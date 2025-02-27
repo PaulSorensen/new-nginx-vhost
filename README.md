@@ -37,6 +37,8 @@ During execution, the script:
 - Sets up a **temporary HTTP-only** Nginx configuration to allow Certbot to verify the domain.
 - Requests an SSL certificate using **Certbot**.
 - Replaces the temporary Nginx configuration with a **final secure version** supporting HTTPS and proper PHP handling.
+- Asks you to enter an email address for Certbot notifications.
+- Asks for an 'X-Powered-By' header. If you don't know what that is, leave it empty or set it to 'Coffee'.
 
 ## Important Notes
 - This script implements the ACME Challenge method for SSL certificate issuance and renewal using Certbot. By configuring the .well-known/acme-challenge/ directory within the Nginx virtual host, Certbot can automatically verify domain ownership over HTTP (port 80). This means users do not need to set up DNS-based challenges for SSL renewal.

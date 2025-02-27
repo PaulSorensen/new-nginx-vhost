@@ -4,36 +4,24 @@
 #  Author      : Paul Sørensen
 #  Website     : https://paulsorensen.io
 #  GitHub      : https://github.com/paulsorensen
-#  Version     : 1.0
-#  Last Update : 25.02.2025
+#  Version     : 1.1
+#  Last Update : 27.02.2025
 #
 #  Description:
 #  Sets up a new vHost on Nginx with SSL certificate and proper configuration.
 #  Website Root will be set up in: /var/www/domain.com/wwwroot/
 #  Logs will be located in: /var/www/domain.com/logs/
 #
-#  Supported index files:
-#  index.php index.html index.htm default.cshtml default.aspx default.asp
-#
 #  Usage:
 #  ./new-nginx-vhost.sh domain.com
-#
-#  Remember to define your email in the variable below for Cerbot notificatoins.
 #
 #  If you found this script useful, a small tip is appreciated ❤️
 #  https://buymeacoffee.com/paulsorensen
 ################################################################################
 
-# Exit immediately if a command exits with a non-zero status
 set -e
 
-# Define email for Certbot notifications
-EMAIL="ex4mple@dom4in.com"
-
-# Define X-Powered-By
-POWERED_BY="Coffee"
-
-BLUE='\033[1;34m'
+BLUE='\033[38;5;81m'
 NC='\033[0m'
 echo -e "${BLUE}New Nginx vHost by paulsorensen.io${NC}"
 echo ""
@@ -45,13 +33,22 @@ if [ -z "$DOMAIN" ]; then
     exit 1
 fi
 
+# Prompt user for email address (required)
+read -p "Please specify email address for Certbot notifications: " EMAIL
+if [ -z "$EMAIL" ]; then
+    echo "Error: Email is required for Certbot notifications."
+    exit 1
+fi
+
+# Prompt user for 'X-Powered-By' header (optional)
+read -p "Please specify 'X-Powered-By' header or leave empty to completely remove header: " POWERED_BY
+
 ################################################################################
 #  1. Set up directories
 ################################################################################
 echo "Creating vHost directories..."
 sudo mkdir -p /var/www/$DOMAIN/wwwroot
 sudo mkdir -p /var/www/$DOMAIN/logs
-# Create the ACME challenge directory
 sudo mkdir -p /var/www/$DOMAIN/wwwroot/.well-known/acme-challenge
 sudo chown -R www-data:www-data /var/www/$DOMAIN
 sudo chmod -R 750 /var/www/$DOMAIN
@@ -70,21 +67,24 @@ server {
     root /var/www/$DOMAIN/wwwroot;
     index index.php index.html index.htm default.cshtml default.aspx default.asp;
 
-    # Minimal location block for direct file checks
     location / {
         try_files \$uri \$uri/ =404;
     }
 
-    # Standard files
     location = /favicon.ico { access_log off; log_not_found off; }
     location = /robots.txt  { access_log off; log_not_found off; }
 
     access_log /var/www/$DOMAIN/logs/access.log;
     error_log /var/www/$DOMAIN/logs/error.log error;
 
-    # PHP Processing Block
     location ~ \.php$ {
-        add_header X-Powered-By "$POWERED_BY";
+EOL
+
+if [ -n "$POWERED_BY" ]; then
+    echo "        add_header X-Powered-By \"$POWERED_BY\";" | sudo tee -a /etc/nginx/sites-available/$DOMAIN > /dev/null
+fi
+
+sudo tee -a /etc/nginx/sites-available/$DOMAIN > /dev/null <<EOL
         fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
@@ -96,17 +96,16 @@ server {
         fastcgi_read_timeout 600;
     }
 
-    # ACME Challenge Location
     location ^~ /.well-known/acme-challenge/ {
         alias /var/www/$DOMAIN/wwwroot/.well-known/acme-challenge/;
         default_type "text/plain";
         try_files \$uri =404;
     }
 
-    # Security: Deny hidden files
     location ~ /\.(ht|git) {
         deny all;
     }
+
     location = /xmlrpc.php {
         deny all;
         access_log off;
@@ -121,15 +120,11 @@ EOL
 ################################################################################
 echo "Enabling temporary site..."
 if [ -L "/etc/nginx/sites-enabled/$DOMAIN" ]; then
-    echo "Removing existing symlink for $DOMAIN..."
     sudo rm -f "/etc/nginx/sites-enabled/$DOMAIN"
 fi
 sudo ln -s /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/
 
-################################################################################
-#  4. Start or Reload Nginx
-################################################################################
-echo "Starting Nginx (if not running)..."
+echo "Starting or reloading Nginx..."
 if ! sudo systemctl is-active --quiet nginx; then
     sudo systemctl start nginx
 else
@@ -137,7 +132,7 @@ else
 fi
 
 ################################################################################
-#  5. Generate SSL Certificate with Certbot
+#  4. Generate SSL Certificate with Certbot
 ################################################################################
 echo "Generating SSL certificate with Certbot..."
 if ! sudo certbot certonly --webroot -w /var/www/$DOMAIN/wwwroot --agree-tos --no-eff-email --email "$EMAIL" -d $DOMAIN -d www.$DOMAIN; then
@@ -146,31 +141,10 @@ if ! sudo certbot certonly --webroot -w /var/www/$DOMAIN/wwwroot --agree-tos --n
 fi
 
 ################################################################################
-#  6. Final Nginx Configuration (HTTP -> HTTPS Redirect + Generic Rewrite)
+#  5. Final Nginx Configuration (HTTPS)
 ################################################################################
 echo "Creating final Nginx configuration with SSL..."
 sudo tee /etc/nginx/sites-available/$DOMAIN > /dev/null <<EOL
-# HTTP Server: Serve ACME challenge and redirect other traffic to HTTPS
-server {
-    listen 80;
-    listen [::]:80;
-
-    server_name $DOMAIN www.$DOMAIN;
-
-    # Serve ACME challenge without redirection
-    location ^~ /.well-known/acme-challenge/ {
-        alias /var/www/$DOMAIN/wwwroot/.well-known/acme-challenge/;
-        default_type "text/plain";
-        try_files \$uri =404;
-    }
-
-    # Redirect everything else to HTTPS
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
-}
-
-# HTTPS Server: Generic rewrite (suitable for WordPress and static sites)
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
@@ -182,7 +156,6 @@ server {
 
     client_max_body_size 256M;
 
-    # Generic rewrite: if file or directory not found, fallback to index.php
     location / {
         try_files \$uri \$uri/ /index.php?\$args;
     }
@@ -193,9 +166,14 @@ server {
     access_log /var/www/$DOMAIN/logs/access.log;
     error_log /var/www/$DOMAIN/logs/error.log error;
 
-    # PHP Processing Block
     location ~ \.php$ {
-        add_header X-Powered-By "$POWERED_BY";
+EOL
+
+if [ -n "$POWERED_BY" ]; then
+    echo "        add_header X-Powered-By \"$POWERED_BY\";" | sudo tee -a /etc/nginx/sites-available/$DOMAIN > /dev/null
+fi
+
+sudo tee -a /etc/nginx/sites-available/$DOMAIN > /dev/null <<EOL
         fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
@@ -207,17 +185,16 @@ server {
         fastcgi_read_timeout 600;
     }
 
-    # ACME Challenge Location
     location ^~ /.well-known/acme-challenge/ {
         alias /var/www/$DOMAIN/wwwroot/.well-known/acme-challenge/;
         default_type "text/plain";
         try_files \$uri =404;
     }
 
-    # Security: Deny hidden files
     location ~ /\.(ht|git) {
         deny all;
     }
+
     location = /xmlrpc.php {
         deny all;
         access_log off;
@@ -225,7 +202,6 @@ server {
         return 444;
     }
 
-    # SSL Configuration
     ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
@@ -234,25 +210,9 @@ server {
 EOL
 
 ################################################################################
-#  7. Reload Nginx with the Final Configuration
+#  6. Reload Nginx with the Final Configuration
 ################################################################################
-echo "Finalizing Nginx configuration with SSL..."
-if ! sudo systemctl is-active --quiet nginx; then
-    sudo systemctl start nginx
-else
-    sudo systemctl reload nginx
-fi
+echo "Reloading Nginx with final SSL configuration..."
+sudo systemctl reload nginx
 
-################################################################################
-#  8. Create a default index.php
-################################################################################
-echo "Creating index.php..."
-sudo tee /var/www/$DOMAIN/wwwroot/index.php > /dev/null <<EOL
-<h1><?php echo "Welcome to ", \$_SERVER['HTTP_HOST']; ?></h1>
-EOL
-
-# Set correct permissions
-sudo chown www-data:www-data /var/www/$DOMAIN/wwwroot/index.php
-sudo chmod 644 /var/www/$DOMAIN/wwwroot/index.php
-
-echo -e "${BLUE}Deployment completed! $DOMAIN is live with SSL and generic configuration.${NC}"
+echo -e "${BLUE}Deployment completed! $DOMAIN is live with SSL.${NC}"
