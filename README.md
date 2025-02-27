@@ -18,7 +18,7 @@ Before running the script, ensure that:
 - **Certbot** (Let's Encrypt) is installed for SSL certificate generation.
 - **PHP-FPM** is installed if PHP support is needed.
 - The script uses **PHP 8.3** by default. Modify the PHP-FPM socket in the script if using a different version.
-- The **email address for Certbot notifications** should be updated in the script before execution. Search for a replace: ex4mple@dom4in.com
+- The **email address for Certbot notifications** should be updated in the script before execution. Search for and replace: ex4mple@dom4in.com
 - X-Powered-By can be set in the variable 'POWERED_BY' below email.
 - You have `sudo` privileges.
 
