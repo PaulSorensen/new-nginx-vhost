@@ -29,6 +29,8 @@ set -e
 
 # Define email for Certbot notifications
 EMAIL="ex4mple@dom4in.com"
+
+# Define X-Powered-By
 POWERED_BY="Coffee"
 
 BLUE='\033[1;34m'
