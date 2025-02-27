@@ -29,6 +29,7 @@ set -e
 
 # Define email for Certbot notifications
 EMAIL="ex4mple@dom4in.com"
+POWERED_BY="Coffee"
 
 BLUE='\033[1;34m'
 NC='\033[0m'
@@ -81,7 +82,7 @@ server {
 
     # PHP Processing Block
     location ~ \.php$ {
-        add_header X-Powered-By "Interscion.com";
+        add_header X-Powered-By "$POWERED_BY";
         fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
@@ -192,7 +193,7 @@ server {
 
     # PHP Processing Block
     location ~ \.php$ {
-        add_header X-Powered-By "Interscion.com";
+        add_header X-Powered-By "$POWERED_BY";
         fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
