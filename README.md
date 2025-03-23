@@ -50,6 +50,13 @@ sudo certbot renew --quiet
 ```
 It is recommended to schedule this command to run at least twice per day to allow Certbot to handle retries in case of temporary failures.
 
+## Cloudlfare Notice
+Before running the script, if you use Cloudflare, be sure to log in and navigate to the DNS settings for your domain, and toggle the proxy status (orange cloud) to ‘DNS Only’ (grey cloud) for the A record of domain.com and www.domain.com. This ensures Certbot can reach your server on port 80 to validate the SSL certificate.
+
+After the script completes and the SSL certificate is issued, you can safely re-enable Cloudflare proxying by toggling the orange cloud back on.
+
+Renewals however will work with proxy on as they are handled by the HTTP server block.
+
 ## Enjoying This Script?
 **If you found this script useful, a small tip is appreciated ❤️**
 [https://buymeacoffee.com/paulsorensen](https://buymeacoffee.com/paulsorensen)
