@@ -1,22 +1,21 @@
 #!/bin/bash
 ################################################################################
-#  Script Name : New Nginx vHost
-#  Author      : Paul Sørensen
-#  Website     : https://paulsorensen.io
-#  GitHub      : https://github.com/paulsorensen
-#  Version     : 1.0
-#  Last Update : 04.03.2025
+# Script Name   : New Nginx vHost
+# Author        : Paul Sørensen
+# Website       : https://paulsorensen.io
+# GitHub        : https://github.com/paulsorensen
+# Version       : 1.0
+# Last Modified : 2025/04/14 01:13:55
 #
-#  Description:
-#  Sets up a new vHost on Nginx with SSL certificate and proper configuration.
-#  Website Root will be set up in: /var/www/domain.com/wwwroot/
-#  Logs will be located in: /var/www/domain.com/logs/
+# Description:
+# Sets up a new vHost on Nginx with SSL certificate and proper configuration.
+# Website Root will be set up in: /var/www/domain.com/wwwroot/
+# Logs will be located in: /var/www/domain.com/logs/
 #
-#  Usage:
-#  ./new-nginx-vhost.sh domain.com
+# Usage: Refer to README.md for details on how to use this script.
 #
-#  If you found this script useful, a small tip is appreciated ❤️
-#  https://buymeacoffee.com/paulsorensen
+# If you found this script useful, a small tip is appreciated ❤️
+# https://buymeacoffee.com/paulsorensen
 ################################################################################
 
 set -e
